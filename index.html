@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Техогляд іменинника</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#0b0b0e;
+    --panel:#141418;
+    --panel-2:#1b1b21;
+    --border: rgba(255,199,66,0.22);
+    --gold:#ffc736;
+    --gold-dim:#c99a2e;
+    --text:#f3f1ec;
+    --text-dim:#9a98a3;
+    --green:#38d97a;
+    --red:#ff5c5c;
+  }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body{
+    margin:0; padding:0; min-height:100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family:'Inter', sans-serif;
+    overflow-x:hidden;
+  }
+  .app{
+    max-width: 460px;
+    margin: 0 auto;
+    min-height:100vh;
+    position:relative;
+    padding: 22px 18px 48px;
+  }
+
+  .glow{ position:fixed; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .glow::before, .glow::after{
+    content:''; position:absolute; border-radius:50%; filter: blur(90px); opacity:0.16;
+  }
+  .glow::before{ width:340px; height:340px; background:var(--gold); top:-120px; left:-100px; }
+  .glow::after{ width:300px; height:300px; background:var(--gold); bottom:-100px; right:-100px; }
+
+  .screen{ display:none; position:relative; z-index:2; }
+  .screen.active{ display:block; animation: fadeIn .6s ease; }
+  @keyframes fadeIn{ from{ opacity:0; transform:translateY(10px);} to{ opacity:1; transform:translateY(0);} }
+
+  h1,h2{ margin:0; font-family:'Sora', sans-serif; }
+  .mono{ font-family:'JetBrains Mono', monospace; }
+
+  .badge{
+    display:inline-flex; align-items:center; gap:6px;
+    background: var(--gold); color:#1a1200;
+    font-family:'Sora', sans-serif; font-weight:800;
+    font-size:.78rem; letter-spacing:1.5px;
+    padding: 6px 14px; border-radius:6px;
+  }
+  .hazard-bar{
+    height:8px; border-radius:4px; margin-bottom:16px;
+    background: repeating-linear-gradient(135deg, var(--gold) 0 10px, #1a1a1a 10px 20px);
+    opacity:.85;
+  }
+
+  .title-lg{
+    font-size: clamp(1.3rem, 6.5vw, 1.65rem);
+    font-weight:800; letter-spacing:.5px; line-height:1.25;
+    margin: 10px 0 6px;
+  }
+  .subtitle{ color: var(--text-dim); font-size:.92rem; line-height:1.5; margin-bottom:18px; }
+
+  .card{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+    margin-bottom: 16px;
+  }
+
+  .scan-frame{
+    position:relative;
+    border-radius: 14px;
+    overflow:hidden;
+    aspect-ratio: 4/5;
+    background:#000;
+    margin-bottom:14px;
+    border: 1px solid var(--border);
+  }
+  .scan-frame img{ width:100%; height:100%; object-fit:cover; display:block; filter: saturate(0.9) contrast(1.05); }
+  .scan-frame::after{
+    content:''; position:absolute; inset:0;
+    background: linear-gradient(180deg, rgba(0,0,0,0.05), rgba(0,0,0,0.35) 100%);
+  }
+  .corner{ position:absolute; width:22px; height:22px; z-index:3; }
+  .corner.tl{ top:8px; left:8px; border-top:2px solid var(--gold); border-left:2px solid var(--gold); }
+  .corner.tr{ top:8px; right:8px; border-top:2px solid var(--gold); border-right:2px solid var(--gold); }
+  .corner.bl{ bottom:8px; left:8px; border-bottom:2px solid var(--gold); border-left:2px solid var(--gold); }
+  .corner.br{ bottom:8px; right:8px; border-bottom:2px solid var(--gold); border-right:2px solid var(--gold); }
+  .rec-dot{
+    position:absolute; top:12px; left:14px; z-index:3;
+    display:flex; align-items:center; gap:5px;
+    font-family:'JetBrains Mono', monospace; font-size:.68rem; color:var(--red); letter-spacing:1px;
+  }
+  .rec-dot span{ width:7px; height:7px; border-radius:50%; background:var(--red); animation:pulse 1.3s ease-in-out infinite; }
+  @keyframes pulse{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+  .id-tag{
+    position:absolute; bottom:10px; left:14px; right:14px; z-index:3;
+    font-family:'JetBrains Mono', monospace; font-size:.66rem; color: var(--gold); letter-spacing:1px;
+  }
+
+  .info-row{ display:flex; gap:10px; margin-top:10px; }
+  .info-box{
+    flex:1; background: var(--panel-2); border:1px solid var(--border);
+    border-radius:10px; padding:10px 12px;
+  }
+  .info-label{ font-size:.68rem; color:var(--text-dim); letter-spacing:1px; margin-bottom:4px; }
+  .info-value{ font-family:'Sora',sans-serif; font-weight:700; font-size:.95rem; }
+  .name-value{ font-size:1.35rem; }
+
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:9px;
+    width:100%; border:none; cursor:pointer;
+    background: linear-gradient(135deg, var(--gold), var(--gold-dim));
+    color:#1a1200; font-family:'Sora', sans-serif; font-weight:700;
+    font-size:.95rem; letter-spacing:.4px;
+    padding:15px 20px; border-radius:12px;
+    margin-top: 6px;
+    box-shadow: 0 10px 24px rgba(255,199,54,0.18);
+    transition: transform .15s ease;
+  }
+  .btn:active{ transform: scale(0.97); }
+
+  .scan-label{
+    font-family:'JetBrains Mono', monospace; color:var(--gold); font-size:.8rem;
+    letter-spacing:2px; margin-bottom:16px;
+    display:flex; align-items:center; gap:8px;
+  }
+  .scan-label .dots span{ animation: blink 1.4s infinite; }
+  .scan-label .dots span:nth-child(2){ animation-delay:.2s; }
+  .scan-label .dots span:nth-child(3){ animation-delay:.4s; }
+  @keyframes blink{ 0%,100%{ opacity:.2;} 50%{ opacity:1;} }
+
+  .check-row{
+    display:flex; align-items:center; gap:12px;
+    padding:11px 4px; border-bottom:1px solid rgba(255,255,255,0.06);
+    opacity:0; transform:translateX(-8px);
+  }
+  .check-row.show{ animation: slideIn .5s ease forwards; }
+  @keyframes slideIn{ to{ opacity:1; transform:translateX(0); } }
+  .check-row:last-child{ border-bottom:none; }
+  .check-icon{ width:28px; height:28px; flex-shrink:0; display:flex; align-items:center; justify-content:center; }
+  .check-label{ flex:1; font-weight:600; font-size:.92rem; }
+  .check-status{ color:var(--text-dim); font-size:.8rem; text-align:right; }
+  .status-icon{ width:18px; height:18px; margin-left:8px; flex-shrink:0; }
+
+  .diagnosis-box{
+    background: var(--panel-2); border:1px solid var(--border);
+    border-radius:12px; padding:14px 16px; margin-top:14px;
+  }
+  .diagnosis-label{ font-family:'JetBrains Mono', monospace; font-size:.7rem; color:var(--gold); letter-spacing:1.5px; margin-bottom:6px; }
+  .diagnosis-text{ font-weight:600; font-size:.95rem; line-height:1.45; }
+
+  .check-item{
+    background: var(--panel-2); border:1px solid var(--border);
+    border-radius:12px; margin-bottom:12px; overflow:hidden; cursor:pointer;
+  }
+  .check-item-head{ display:flex; align-items:center; gap:12px; padding:14px 16px; }
+  .check-num{
+    width:36px; height:36px; border-radius:50%; flex-shrink:0;
+    background: rgba(255,199,54,0.1); border:1.5px solid var(--gold);
+    color:var(--gold); font-family:'JetBrains Mono', monospace; font-weight:600;
+    display:flex; align-items:center; justify-content:center; font-size:.85rem;
+  }
+  .check-item-title{ flex:1; font-family:'Sora',sans-serif; font-weight:700; font-size:.92rem; letter-spacing:.3px; }
+  .chevron{ width:16px; height:16px; color:var(--text-dim); transition: transform .3s ease; flex-shrink:0; }
+  .check-item.open .chevron{ transform: rotate(180deg); }
+  .check-item-body{
+    max-height:0; overflow:hidden; transition: max-height .35s ease;
+    padding: 0 16px;
+  }
+  .check-item.open .check-item-body{ max-height:120px; padding: 0 16px 16px; }
+  .check-item-body p{ margin:0; color:var(--text-dim); font-size:.86rem; line-height:1.5; }
+
+  .heart-wrap{ display:flex; justify-content:center; margin: 8px 0 16px; }
+  .conclusion{
+    font-family:'Sora', sans-serif; font-weight:800; font-size:1.1rem;
+    text-align:center; line-height:1.4; margin: 4px 0 18px;
+    color: var(--gold);
+  }
+  .wishes-text{ font-size:.95rem; line-height:1.65; text-align:center; margin-bottom:16px; color: var(--text); }
+  .wishes-highlight{ font-family:'Sora', sans-serif; font-weight:800; text-align:center; font-size:1.15rem; margin-bottom:14px; }
+  .signature{ text-align:center; color:var(--text-dim); font-size:.9rem; line-height:1.5; }
+
+  .gift-stage{
+    position:relative; width: 220px; height:220px; margin: 10px auto 8px; cursor:pointer;
+  }
+  .gift-stage svg{ width:100%; height:100%; overflow:visible; }
+  .gift-lid{ transform-origin: 30px 78px; transition: transform 1s cubic-bezier(.4,0,.2,1); }
+  .gift-stage.open .gift-lid{ transform: rotateX(-120deg); }
+  .gift-glow{ opacity:0; transition: opacity .6s ease; }
+  .gift-stage.open .gift-glow{ opacity:1; }
+  .gift-stage.open .gift-static{ opacity:0; transition: opacity .3s ease; }
+
+  .cake-wrap{
+    opacity:0; transform: translateY(14px) scale(0.92);
+    transition: opacity .7s ease .25s, transform .7s cubic-bezier(.2,.8,.3,1) .25s;
+    text-align:center; margin-top: 6px;
+  }
+  .cake-wrap.show{ opacity:1; transform: translateY(0) scale(1); }
+
+  .fx-layer{ position:fixed; inset:0; pointer-events:none; z-index:5; overflow:hidden; }
+  .fx-piece{ position:absolute; opacity:0; animation: fxUp linear forwards; }
+  @keyframes fxUp{
+    0%{ transform: translateY(0) rotate(0deg); opacity:0; }
+    12%{ opacity:1; }
+    100%{ transform: translateY(-90vh) rotate(300deg); opacity:0; }
+  }
+
+  .reveal-text{
+    text-align:center; font-size:1rem; line-height:1.6; margin: 16px 0 6px;
+    opacity:0; transition: opacity .6s ease .4s;
+  }
+  .reveal-text.show{ opacity:1; }
+  .thanks-btn{ display:none; }
+  .thanks-btn.show{ display:flex; }
+
+  .final-wrap{ text-align:center; padding-top: 20px; position:relative; }
+  .final-number{
+    font-family:'Sora', sans-serif; font-weight:800; font-size:5.2rem;
+    color:transparent; -webkit-text-stroke: 2px var(--gold);
+    line-height:1; margin-bottom: 6px;
+    text-shadow: 0 0 26px rgba(255,199,54,0.45);
+  }
+  .final-sub{ font-family:'JetBrains Mono', monospace; color:var(--text-dim); letter-spacing:3px; font-size:.75rem; margin-bottom:24px; }
+  .final-text{
+    font-family:'Sora', sans-serif; font-weight:700; font-size:1.15rem;
+    line-height:1.6; color:var(--text); margin: 0 auto; max-width:340px;
+  }
+  .final-text b{ color:var(--gold); }
+
+  @media (min-width:700px){
+    .app{ padding-top: 46px; }
+    .title-lg{ font-size:1.9rem; }
+  }
+</style>
+</head>
+<body>
+
+<div class="glow"></div>
+<div class="fx-layer" id="fxLayer"></div>
+
+<div class="app">
+
+  <section class="screen active" id="screen1">
+    <div class="hazard-bar"></div>
+    <span class="badge">УВАГА!</span>
+    <h1 class="title-lg">ТЕРМІНОВИЙ<br>ТЕХОГЛЯД ІМЕНИННИКА</h1>
+
+    <div class="scan-frame">
+      <div class="rec-dot"><span></span>REC</div>
+      <img src="img/dima.jpg" alt="Діма">
+      <div class="corner tl"></div>
+      <div class="corner tr"></div>
+      <div class="corner bl"></div>
+      <div class="corner br"></div>
+      <div class="id-tag">ID: HAPPY_BIRTHDAY_2026</div>
+    </div>
+
+    <div class="info-box" style="margin-bottom:10px;">
+      <div class="info-label">ІМ'Я</div>
+      <div class="info-value name-value">ДІМА</div>
+    </div>
+    <div class="info-row">
+      <div class="info-box">
+        <div class="info-label">ВІК</div>
+        <div class="info-value">+1 РІК</div>
+      </div>
+      <div class="info-box">
+        <div class="info-label">СТАН</div>
+        <div class="info-value" style="font-size:.85rem;">ПОТРЕБУЄ ПЕРЕВІРКИ</div>
+      </div>
+    </div>
+
+    <button class="btn" id="toScreen2">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 8a4 4 0 100 8 4 4 0 000-8z" stroke="#1a1200" stroke-width="2"/><path d="M19.4 13a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 11-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V19a2 2 0 11-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 11-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H4a2 2 0 110-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06a1.65 1.65 0 001.82.33H10a1.65 1.65 0 001-1.51V4a2 2 0 114 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 112.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V10a1.65 1.65 0 001.51 1H20a2 2 0 110 4h-.09a1.65 1.65 0 00-1.51 1z" stroke="#1a1200" stroke-width="1.6"/></svg>
+      РОЗПОЧАТИ ТЕХОГЛЯД
+    </button>
+  </section>
+
+  <section class="screen" id="screen2">
+    <h1 class="title-lg">ДІАГНОСТИКА<span class="mono">...</span></h1>
+    <p class="subtitle">Система перевіряє характеристики іменинника</p>
+    <div class="scan-label">СКАНУВАННЯ<span class="dots"><span>.</span><span>.</span><span>.</span></span></div>
+
+    <div class="card" id="checklist">
+      <div class="check-row" data-i="0">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-9C1 8.5 2.5 5 6 5c2 0 3.5 1.2 4 2.2C10.5 6.2 12 5 14 5c3.5 0 5 3.5 3.5 7-2.5 4.65-9.5 9-9.5 9z" fill="var(--gold)"/></svg></div>
+        <div class="check-label">Серце</div>
+        <div class="check-status">справне</div>
+        <div class="status-icon" id="ic0"></div>
+      </div>
+      <div class="check-row" data-i="1">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3a7 7 0 00-7 7c0 2.4 1.2 4 2 5v2a1 1 0 001 1h8a1 1 0 001-1v-2c.8-1 2-2.6 2-5a7 7 0 00-7-7z" stroke="var(--gold)" stroke-width="1.6"/><path d="M9 20h6" stroke="var(--gold)" stroke-width="1.6"/></svg></div>
+        <div class="check-label">Мозок</div>
+        <div class="check-status">іноді зависає</div>
+        <div class="status-icon" id="ic1"></div>
+      </div>
+      <div class="check-row" data-i="2">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="8" cy="12" r="4.2" stroke="var(--gold)" stroke-width="1.6"/><circle cx="16" cy="12" r="4.2" stroke="var(--gold)" stroke-width="1.6"/><path d="M12.2 12h-.4M4 11l-2 .6M20 11l2 .6" stroke="var(--gold)" stroke-width="1.6"/></svg></div>
+        <div class="check-label">Харизма</div>
+        <div class="check-status">перевищення норми</div>
+        <div class="status-icon" id="ic2"></div>
+      </div>
+      <div class="check-row" data-i="3">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M12 3l3 5 5 .8-3.6 3.5.9 5-4.3-2.3L8.7 17.3l.9-5L6 8.8 11 8z" stroke="var(--gold)" stroke-width="1.4" fill="none"/></svg></div>
+        <div class="check-label">Апетит</div>
+        <div class="check-status">критично високий</div>
+        <div class="status-icon" id="ic3"></div>
+      </div>
+      <div class="check-row" data-i="4">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="7" r="3" stroke="var(--gold)" stroke-width="1.6"/><path d="M6 21c0-3.5 2.7-6 6-6s6 2.5 6 6" stroke="var(--gold)" stroke-width="1.6"/></svg></div>
+        <div class="check-label">Лінь</div>
+        <div class="check-status">небезпечна кількість</div>
+        <div class="status-icon" id="ic4"></div>
+      </div>
+      <div class="check-row" data-i="5">
+        <div class="check-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="7" width="18" height="12" rx="2" stroke="var(--gold)" stroke-width="1.6"/><path d="M3 10h18" stroke="var(--gold)" stroke-width="1.6"/><circle cx="16" cy="14.2" r="1.3" fill="var(--gold)"/></svg></div>
+        <div class="check-label">Гроші</div>
+        <div class="check-status">не виявлено</div>
+        <div class="status-icon" id="ic5"></div>
+      </div>
+    </div>
+
+    <div class="diagnosis-box" id="diagnosisBox" style="opacity:0; transition:opacity .6s ease;">
+      <div class="diagnosis-label">ДІАГНОЗ</div>
+      <div class="diagnosis-text">Абсолютно нормальний мужик. Можна експлуатувати далі.</div>
+    </div>
+
+    <button class="btn" id="toScreen3" style="margin-top:16px;">ПРОДОВЖИТИ →</button>
+  </section>
+
+  <section class="screen" id="screen3">
+    <h1 class="title-lg">ДОДАТКОВА ПЕРЕВІРКА</h1>
+    <p class="subtitle">Натисни на пункт, щоб перевірити</p>
+
+    <div class="check-item" data-i="0">
+      <div class="check-item-head">
+        <div class="check-num">01</div>
+        <div class="check-item-title">ТЕРПІННЯ</div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="check-item-body"><p>Перевірка завершена. Особливо не випробовуй.</p></div>
+    </div>
+
+    <div class="check-item" data-i="1">
+      <div class="check-item-head">
+        <div class="check-num">02</div>
+        <div class="check-item-title">ГРОШІ</div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="check-item-body"><p>Пошук грошей завершено. Мама теж не знає, де вони.</p></div>
+    </div>
+
+    <div class="check-item" data-i="2">
+      <div class="check-item-head">
+        <div class="check-num">03</div>
+        <div class="check-item-title" style="display:flex; align-items:center; gap:6px;">
+          ОСОБИСТЕ ЖИТТЯ
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="var(--gold)" stroke-width="1.8"/><path d="M8 11V7a4 4 0 018 0v4" stroke="var(--gold)" stroke-width="1.8"/></svg>
+        </div>
+        <svg class="chevron" viewBox="0 0 24 24" fill="none"><path d="M6 9l6 6 6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      </div>
+      <div class="check-item-body"><p>Доступ обмежений. Мама вирішила не втручатися.</p></div>
+    </div>
+
+    <button class="btn" id="toScreen4" style="margin-top:18px;">ДОСИТЬ ПЕРЕВІРОК →</button>
+  </section>
+
+  <section class="screen" id="screen4">
+    <h1 class="title-lg" style="display:flex; align-items:center; gap:8px;">
+      ТЕХОГЛЯД ЗАВЕРШЕНО
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="1.8"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </h1>
+    <p class="subtitle">Офіційний висновок:</p>
+
+    <div class="conclusion">ТИ – НАЙКРАЩИЙ СИН,<br>ЯКОГО МОГЛА ОТРИМАТИ МАМА!</div>
+
+    <div class="heart-wrap">
+      <svg width="46" height="46" viewBox="0 0 24 24" fill="none"><path d="M12 21s-7-4.35-9.5-9C1 8.5 2.5 5 6 5c2 0 3.5 1.2 4 2.2C10.5 6.2 12 5 14 5c3.5 0 5 3.5 3.5 7-2.5 4.65-9.5 9-9.5 9z" fill="var(--gold)" style="filter:drop-shadow(0 0 12px rgba(255,199,54,0.55));"/></svg>
+    </div>
+
+    <p class="wishes-text">Бажаю тобі здоров'я, сил, справжніх друзів, любові, грошей і життя, від якого самому буде кайфово.</p>
+    <div class="wishes-highlight">З Днем народження, сину!</div>
+    <p class="signature">Люблю тебе.<br>Мама ♥</p>
+
+    <button class="btn" id="toScreen5" style="margin-top:18px;">ДАЛІ →</button>
+  </section>
+
+  <section class="screen" id="screen5">
+    <h1 class="title-lg" style="text-align:center;">ПРИЗ ЗА ПРОХОДЖЕННЯ ТЕХОГЛЯДУ</h1>
+
+    <div class="gift-stage" id="giftStage">
+      <svg viewBox="0 0 220 220" fill="none">
+        <defs>
+          <radialGradient id="giftGlow" cx="50%" cy="50%" r="50%">
+            <stop offset="0%" stop-color="#ffe9a8" stop-opacity="0.9"/>
+            <stop offset="100%" stop-color="#ffc736" stop-opacity="0"/>
+          </radialGradient>
+        </defs>
+        <circle class="gift-glow" cx="110" cy="110" r="95" fill="url(#giftGlow)"/>
+        <g class="gift-static">
+          <rect x="24" y="92" width="172" height="104" rx="8" fill="#17171b" stroke="var(--gold)" stroke-opacity="0.5"/>
+          <rect x="100" y="92" width="20" height="104" fill="#ffc736"/>
+          <g class="gift-lid">
+            <rect x="16" y="68" width="188" height="30" rx="6" fill="#1c1c21" stroke="var(--gold)" stroke-opacity="0.6"/>
+            <rect x="94" y="68" width="32" height="30" fill="#ffc736"/>
+            <path d="M110 68c-18-26-40-26-50-10-8 12 10 14 30 10z" fill="#ffc736"/>
+            <path d="M110 68c18-26 40-26 50-10 8 12-10 14-30 10z" fill="#ffc736"/>
+            <circle cx="110" cy="66" r="7" fill="#c99a2e"/>
+          </g>
+        </g>
+      </svg>
+    </div>
+    <p class="subtitle" id="giftHint" style="text-align:center;">Тисни на подарунок, щоб дізнатися, що всередині</p>
+
+    <div class="cake-wrap" id="cakeWrap">
+      <svg width="180" height="150" viewBox="0 0 200 170" fill="none" style="margin:0 auto; display:block;">
+        <g id="candles">
+          <rect x="60" y="18" width="6" height="24" rx="2" fill="#ffc736"/>
+          <path d="M63 18c-4-6-1-10 0-13 1 3 4 7 0 13z" fill="#ff8a3d"/>
+          <rect x="97" y="10" width="6" height="30" rx="2" fill="#ffc736"/>
+          <path d="M100 10c-4-6-1-10 0-13 1 3 4 7 0 13z" fill="#ff8a3d"/>
+          <rect x="134" y="18" width="6" height="24" rx="2" fill="#ffc736"/>
+          <path d="M137 18c-4-6-1-10 0-13 1 3 4 7 0 13z" fill="#ff8a3d"/>
+        </g>
+        <path d="M40 62 L160 62 L152 58 L48 58 Z" fill="#2a2a30"/>
+        <rect x="34" y="62" width="132" height="46" rx="6" fill="#3a2a1c" stroke="var(--gold)" stroke-opacity="0.5"/>
+        <path d="M34 108h132v14a10 10 0 01-10 10H44a10 10 0 01-10-10z" fill="#241a12" stroke="var(--gold)" stroke-opacity="0.5"/>
+        <path d="M34 62c8 6 16-6 24 0s16-6 24 0 16-6 24 0 16-6 24 0 16-6 24 0" stroke="var(--gold)" stroke-width="2" fill="none" opacity="0.7"/>
+        <circle cx="60" cy="80" r="4" fill="var(--gold)" opacity="0.8"/>
+        <circle cx="100" cy="86" r="4" fill="#ff8a3d" opacity="0.8"/>
+        <circle cx="140" cy="80" r="4" fill="var(--gold)" opacity="0.8"/>
+        <path d="M100 96c-3-4-9-2-9 2 0 3 5 6 9 9 4-3 9-6 9-9 0-4-6-6-9-2z" fill="#ff5c5c" opacity="0.9"/>
+      </svg>
+      <p class="reveal-text" id="revealText">Вдома на тебе чекає солодкий смаколик від мами <span style="color:#ff5c5c;">♥</span></p>
+    </div>
+
+    <button class="btn thanks-btn" id="toScreen6" style="justify-content:center;">УРААА! ДЯКУЮ ♥</button>
+  </section>
+
+  <section class="screen" id="screen6">
+    <div class="final-wrap">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" style="margin-bottom:10px;"><path d="M12 21s-7-4.35-9.5-9C1 8.5 2.5 5 6 5c2 0 3.5 1.2 4 2.2C10.5 6.2 12 5 14 5c3.5 0 5 3.5 3.5 7-2.5 4.65-9.5 9-9.5 9z" fill="var(--gold)"/></svg>
+      <div class="final-number">25</div>
+      <div class="final-sub">HAPPY BIRTHDAY EDITION</div>
+      <p class="final-text">Мама дуже старалася.<br>Люблю тебе, <b>сину</b>!<br>Ти в мене найкращий син у світі!</p>
+    </div>
+  </section>
+
+</div>
+
+<script>
+const SOUND = {
+  scanner: new Audio('scanner.mp3'),
+  click: new Audio('click.wav'),
+  fanfare: new Audio('fanfare.mp3'),
+  hbd: new Audio('happy-birthday.mp3')
+};
+SOUND.scanner.volume = 0.5;
+SOUND.click.volume = 0.6;
+SOUND.fanfare.volume = 0.6;
+SOUND.hbd.volume = 0.55;
+
+let currentAudio = null;
+function playSound(a){
+  if(currentAudio){ currentAudio.pause(); currentAudio.currentTime = 0; }
+  a.currentTime = 0;
+  a.play().catch(()=>{});
+  currentAudio = a;
+}
+function stopSound(){
+  if(currentAudio){ currentAudio.pause(); currentAudio.currentTime = 0; currentAudio = null; }
+}
+
+const screens = {};
+document.querySelectorAll('.screen').forEach(s => screens[s.id] = s);
+
+function goTo(id){
+  stopSound();
+  Object.values(screens).forEach(s => s.classList.remove('active'));
+  screens[id].classList.add('active');
+  window.scrollTo(0,0);
+  if(id === 'screen2') startDiagnostics();
+  if(id === 'screen4') playSound(SOUND.fanfare);
+}
+
+document.getElementById('toScreen2').addEventListener('click', () => goTo('screen2'));
+
+const statusIcons = {
+  ok: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--green)" stroke-width="1.8"/><path d="M7.5 12.5l3 3 6-6.5" stroke="var(--green)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  warn: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 4l9.5 16H2.5z" stroke="var(--gold)" stroke-width="1.6" stroke-linejoin="round"/><path d="M12 10v4" stroke="var(--gold)" stroke-width="1.8" stroke-linecap="round"/><circle cx="12" cy="17" r="1" fill="var(--gold)"/></svg>',
+  bad: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="var(--red)" stroke-width="1.8"/><path d="M9 9l6 6M15 9l-6 6" stroke="var(--red)" stroke-width="2" stroke-linecap="round"/></svg>'
+};
+const statusMap = ['ok','warn','ok','warn','warn','bad'];
+let diagnosticsPlayed = false;
+
+function startDiagnostics(){
+  const rows = document.querySelectorAll('#checklist .check-row');
+  rows.forEach(r => r.classList.remove('show'));
+  document.getElementById('diagnosisBox').style.opacity = 0;
+  statusMap.forEach((s,i) => { const el = document.getElementById('ic'+i); if(el) el.innerHTML=''; });
+
+  if(!diagnosticsPlayed){
+    playSound(SOUND.scanner);
+    diagnosticsPlayed = true;
+  }
+
+  rows.forEach((row, i) => {
+    setTimeout(() => {
+      row.classList.add('show');
+      const el = document.getElementById('ic'+i);
+      if(el) el.innerHTML = statusIcons[statusMap[i]];
+    }, 260*i);
+  });
+
+  setTimeout(() => {
+    document.getElementById('diagnosisBox').style.opacity = 1;
+  }, 260*rows.length + 200);
+}
+
+document.getElementById('toScreen3').addEventListener('click', () => goTo('screen3'));
+
+document.querySelectorAll('.check-item').forEach(item => {
+  item.querySelector('.check-item-head').addEventListener('click', () => {
+    const isOpen = item.classList.contains('open');
+    document.querySelectorAll('.check-item').forEach(i => i.classList.remove('open'));
+    if(!isOpen){
+      item.classList.add('open');
+      playSound(SOUND.click);
+    }
+  });
+});
+document.getElementById('toScreen4').addEventListener('click', () => goTo('screen4'));
+document.getElementById('toScreen5').addEventListener('click', () => goTo('screen5'));
+
+const giftStage = document.getElementById('giftStage');
+const giftHint = document.getElementById('giftHint');
+const cakeWrap = document.getElementById('cakeWrap');
+const revealText = document.getElementById('revealText');
+const thanksBtn = document.getElementById('toScreen6');
+const fxLayer = document.getElementById('fxLayer');
+let giftOpened = false;
+
+function spawnConfetti(){
+  const colors = ['#ffc736','#ffe9a8','#c99a2e','#ffffff'];
+  for(let i=0;i<26;i++){
+    setTimeout(()=>{
+      const p = document.createElement('div');
+      p.className = 'fx-piece';
+      const size = 5+Math.random()*7;
+      p.style.left = Math.random()*100+'vw';
+      p.style.top = '100vh';
+      p.style.width = size+'px';
+      p.style.height = size+'px';
+      p.style.background = colors[Math.floor(Math.random()*colors.length)];
+      p.style.borderRadius = Math.random()>0.5 ? '50%' : '2px';
+      p.style.animationDuration = (2.6+Math.random()*1.6)+'s';
+      fxLayer.appendChild(p);
+      setTimeout(()=>p.remove(), 4500);
+    }, i*30);
+  }
+}
+
+giftStage.addEventListener('click', () => {
+  if(giftOpened) return;
+  giftOpened = true;
+  giftStage.classList.add('open');
+  giftHint.style.opacity = '0';
+  playSound(SOUND.hbd);
+  spawnConfetti();
+  setTimeout(() => {
+    cakeWrap.classList.add('show');
+    revealText.classList.add('show');
+    thanksBtn.classList.add('show');
+  }, 500);
+});
+
+document.getElementById('toScreen6').addEventListener('click', () => goTo('screen6'));
+</script>
+
+</body>
+</html>
